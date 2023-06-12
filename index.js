@@ -40,6 +40,15 @@ async function run() {
     })
 
 
+    const classCollection = client.db("PhotoMe").collection("classes");
+
+    app.get('/classes' , async(req,res) => {
+        const result = await classCollection.find().toArray();
+        res.send(result);
+
+    })
+
+
 
 
 
