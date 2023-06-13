@@ -53,7 +53,11 @@ async function run() {
     const selectedClassCollection = client.db("PhotoMe").collection("selectedClass");
 
 
-   
+    app.post('/selectedClass', async(req, res) => {
+      const item = req.body;
+      const result = await selectedClassCollection.insertOne(item);
+      res.send(result);
+    })
 
 
    
