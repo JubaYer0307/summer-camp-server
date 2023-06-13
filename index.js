@@ -50,6 +50,16 @@ async function run() {
 
 
 
+    const selectedClassCollection = client.db("PhotoMe").collection("selectedClass");
+
+
+   
+
+
+   
+
+
+
 
 
 
