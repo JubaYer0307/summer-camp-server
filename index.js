@@ -53,11 +53,27 @@ async function run() {
     const selectedClassCollection = client.db("PhotoMe").collection("selectedClass");
 
 
+
+    app.get('/selectedClass', async(req, res) => {
+      const email = req.query.email;
+      
+      if(!email){
+        res.send([]);
+      }
+
+      const query = { email: email};
+      const result = await selectedClassCollection.find(query).toArray();
+      res.send(result);
+
+    });
+
     app.post('/selectedClass', async(req, res) => {
       const item = req.body;
       const result = await selectedClassCollection.insertOne(item);
       res.send(result);
     })
+
+
 
 
    
