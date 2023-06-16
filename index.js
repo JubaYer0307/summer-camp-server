@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+
 require('dotenv').config();
 
 const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY);
@@ -43,7 +44,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server (optional starting in v4.7)
-    await client.connect();
+    
 
     const usersCollection = client.db('PhotoMe').collection('users');
 
@@ -81,38 +82,84 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/users/:email', verifyJWT, async (req, res) => {
+    app.get('/users/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
-
+    
       try {
         const user = await usersCollection.findOne(query);
-
+    
         if (!user) {
           return res.status(404).send({ error: true, message: 'User not found' });
         }
-
-        const isAdmin = user.role === 'admin';
-
-        res.send({ admin: isAdmin });
+    
+        res.send({ role: user.role }); // Send the role property instead of admin property
       } catch (error) {
-        console.error('Error while checking admin status:', error);
+        console.error('Error while checking role:', error);
         res.status(500).send({ error: true, message: 'Internal server error' });
       }
     });
+    
 
-    app.patch('/users/admin/:id', async (req, res) => {
+    app.patch('/users/:id', async (req, res) => {
       const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $set: {
-          role: 'admin',
-        },
-      };
+      const updatedData = req.body;
 
-      const result = await usersCollection.updateOne(filter, updateDoc);
-      res.send(result);
+      try {
+        const query = { _id: new ObjectId(id) };
+        const update = { $set: updatedData };
+        const result = await usersCollection.updateOne(query, update);
+
+        if (result.modifiedCount === 1) {
+          res.json({ success: true, modifiedCount: result.modifiedCount });
+        } else {
+          res.status(404).json({ success: false, error: 'User not found' });
+        }
+      } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+      }
     });
+
+    app.get('/classes/:id', async (req, res) => {
+      const { id } = req.params;
+    
+      try {
+        const query = { _id: new ObjectId(id) };
+        const classObj = await classCollection.findOne(query);
+    
+        if (!classObj) {
+          return res.status(404).json({ success: false, error: 'Class not found' });
+        }
+    
+        res.json({ success: true, class: classObj });
+      } catch (error) {
+        console.error('Error retrieving class:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+    });
+    
+    app.patch('/classes/:id', async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+    
+      try {
+        const query = { _id: new ObjectId(id) };
+        const update = { $set: updatedData };
+        const updatedClass = await classCollection.findOneAndUpdate(query, update, { returnOriginal: false });
+    
+        if (!updatedClass) {
+          return res.status(404).json({ success: false, error: 'Class not found' });
+        }
+    
+        res.json({ success: true, updatedClass });
+      } catch (error) {
+        console.error('Error updating class:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+    });
+    
+    
 
     const instructorCollection = client.db('PhotoMe').collection('instructors');
 
@@ -144,6 +191,32 @@ async function run() {
         res.status(500).send({ error: 'An error occurred while saving the class' });
       }
     });
+
+
+    app.patch('/classes/:id', async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const updatedClass = await classCollection.findOneAndUpdate(
+          { _id: ObjectId(id) },
+          { $set: { status: status } },
+          { returnOriginal: false }
+        );
+    
+        if (!updatedClass) {
+          return res.status(404).json({ success: false, error: 'Class not found' });
+        }
+    
+        res.json({ success: true, updatedClass });
+      } catch (error) {
+        console.error('Error updating class:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+    });
+    
+    
+
+
 
     const selectedClassCollection = client.db('PhotoMe').collection('selectedClass');
 
